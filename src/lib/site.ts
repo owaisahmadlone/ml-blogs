@@ -7,7 +7,7 @@ export const site = {
   education: "B.Tech in Computer Science, IIT Kharagpur",
   description:
     "Notes on machine learning, AI engineering, and building things — by Owais Ahmad Lone.",
-  url: "https://ml-blogs.vercel.app",
+  url: "https://ml-blogs-ten.vercel.app",
   email: "owaisahmadlone@gmail.com",
   socials: {
     github: "https://github.com/owaisahmadlone",
