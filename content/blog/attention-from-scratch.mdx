@@ -1,0 +1,110 @@
+---
+title: "Attention From Scratch, One Matrix at a Time"
+description: "A no-magic walk through scaled dot-product attention, multi-head attention, and causal masking — the core of every transformer, built up from the intuition."
+date: "2026-05-18"
+category: "Fundamentals"
+tags: ["transformers", "attention", "deep-learning"]
+---
+
+If you can implement attention from scratch under time pressure, you understand
+transformers. If you can't, you're pattern-matching. This post builds attention
+up from the intuition so it stops feeling like magic.
+
+## The one-sentence intuition
+
+Attention lets every token look at every other token and pull in the information
+it needs. That's it. The machinery below is just a differentiable way to answer:
+*"for this token, which other tokens matter, and by how much?"*
+
+## Queries, keys, and values
+
+Each token is projected into three vectors:
+
+- **Query** — what this token is looking for.
+- **Key** — what this token offers to others.
+- **Value** — the actual content passed along if it's attended to.
+
+We compute how well each query matches each key, turn those scores into weights,
+and take a weighted sum of the values.
+
+## Scaled dot-product attention
+
+The whole operation is a handful of matrix multiplies:
+
+```python
+import torch
+import torch.nn.functional as F
+
+def attention(q, k, v, mask=None):
+    # q, k, v: (batch, seq, d_k)
+    d_k = q.size(-1)
+    scores = q @ k.transpose(-2, -1) / d_k**0.5   # (batch, seq, seq)
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, float("-inf"))
+    weights = F.softmax(scores, dim=-1)
+    return weights @ v                             # (batch, seq, d_k)
+```
+
+### Why divide by √d_k?
+
+As dimensionality grows, dot products grow in magnitude, pushing softmax into
+regions with vanishing gradients. Scaling by `√d_k` keeps the variance of the
+scores roughly constant so training stays stable. It's a small detail that
+matters enormously.
+
+## Multi-head attention
+
+One attention operation learns one notion of "relevance." We usually want
+several — syntax, coreference, position — so we run `h` attention heads in
+parallel, each in a lower-dimensional subspace, then concatenate.
+
+```python
+class MultiHeadAttention(torch.nn.Module):
+    def __init__(self, d_model, n_heads):
+        super().__init__()
+        assert d_model % n_heads == 0
+        self.n_heads = n_heads
+        self.d_k = d_model // n_heads
+        self.qkv = torch.nn.Linear(d_model, 3 * d_model)
+        self.proj = torch.nn.Linear(d_model, d_model)
+
+    def forward(self, x, mask=None):
+        b, t, _ = x.shape
+        q, k, v = self.qkv(x).chunk(3, dim=-1)
+        # reshape into (batch, heads, seq, d_k)
+        q, k, v = [
+            z.view(b, t, self.n_heads, self.d_k).transpose(1, 2)
+            for z in (q, k, v)
+        ]
+        out = attention(q, k, v, mask)               # (b, heads, t, d_k)
+        out = out.transpose(1, 2).reshape(b, t, -1)  # concat heads
+        return self.proj(out)
+```
+
+## Causal masking
+
+For language modeling, a token must not peek at the future. We enforce this with
+a lower-triangular mask that sets future scores to `-inf` before the softmax.
+
+```python
+def causal_mask(t: int) -> torch.Tensor:
+    return torch.tril(torch.ones(t, t)).bool()
+```
+
+<Callout type="note">
+  The mask is applied to the *scores*, not the weights. Setting future scores to
+  `-inf` makes `softmax` assign them exactly zero probability, so no gradient
+  flows backward through them.
+</Callout>
+
+## Common interview follow-ups
+
+- **Complexity?** Attention is O(n²) in sequence length — the whole reason flash
+  attention and linear-attention variants exist.
+- **Where do the parameters live?** Only in the projection matrices (Q, K, V, and
+  the output). The attention operation itself has no learnable weights.
+- **Why residuals and layer norm?** They keep gradients well-behaved through deep
+  stacks; attention alone doesn't train well without them.
+
+Implement this once by hand, then re-implement it a week later without looking.
+The second time is where the understanding sticks.

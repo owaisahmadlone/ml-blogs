@@ -1,0 +1,73 @@
+---
+title: "What Being a Founding AI Engineer Actually Looks Like"
+description: "The unglamorous, high-leverage reality of doing ML at an early-stage startup — where the model is often the easy part."
+date: "2026-04-09"
+category: "Career"
+tags: ["career", "startups", "ml-engineering"]
+---
+
+When people picture an AI engineer at a startup, they imagine someone training
+models all day. The reality is more interesting and more varied. At an early
+company, the model is frequently the *easiest* part of the problem.
+
+Here's what the job actually involves, and what I've learned doing it.
+
+## You own the whole pipeline
+
+There is no ML platform team to hand things off to. You are the data pipeline,
+the training code, the evals, the serving infrastructure, and the on-call
+engineer when inference latency spikes at 2am.
+
+This is not a complaint — it's the appeal. Owning the whole pipeline means you
+see where value actually leaks out of the system, which is almost never where you
+expected.
+
+## Data beats models, again and again
+
+The highest-leverage thing I do is rarely "pick a better model." It's:
+
+- Finding the mislabeled examples poisoning an eval set.
+- Noticing that 20% of production traffic is a use case nobody designed for.
+- Building the tooling so a domain expert can label 200 examples in an hour
+  instead of a day.
+
+<Callout type="tip">
+  Spend a day building the internal tool that lets a non-engineer inspect and
+  correct model outputs. It will pay for itself within a week and keep paying.
+</Callout>
+
+## Ship, measure, repeat
+
+Startups win on iteration speed, not model sophistication. The instinct to
+perfect a model before shipping is usually wrong. A worse model in production,
+generating real feedback, beats a better model in a notebook.
+
+That means:
+
+- **Instrument first.** If you can't measure it in production, you can't improve
+  it. Logging and evals come before optimization.
+- **Prefer boring technology.** A managed vector DB and a well-known model let you
+  spend your innovation budget where it differentiates the product.
+- **Make rollback trivial.** You will ship regressions. The teams that move fast
+  are the ones that can undo mistakes in minutes.
+
+## The skills that compound
+
+Technical depth matters, but the things that have compounded most for me are
+oddly mundane:
+
+1. **Writing clearly.** Half of engineering is convincing other people —
+   proposals, postmortems, docs. Clear writing is clear thinking made visible.
+2. **Scoping ruthlessly.** Knowing what *not* to build is worth more than any
+   framework.
+3. **Talking to users.** The best feature ideas came from watching someone
+   struggle with the product, not from a research paper.
+
+## Would I recommend it?
+
+If you like ambiguity, breadth, and seeing your work reach users in days rather
+than quarters — yes, without hesitation. If you want to go deep on one narrow
+research problem for a year, a lab is a better fit.
+
+The founding-engineer path trades depth for leverage. For me, that trade has been
+more than worth it.

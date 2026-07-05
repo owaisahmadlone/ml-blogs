@@ -1,0 +1,110 @@
+---
+title: "Building RAG That Actually Works in Production"
+description: "A field guide to retrieval-augmented generation beyond the demo — chunking, retrieval, reranking, evals, and the failure modes nobody warns you about."
+date: "2026-06-24"
+category: "Engineering"
+tags: ["rag", "llm", "retrieval", "production"]
+---
+
+Retrieval-augmented generation is deceptively easy to prototype and genuinely
+hard to ship. You can wire up an embedding model, a vector database, and an LLM
+in an afternoon and get something that demos beautifully. Then real users show
+up with real questions, and the cracks appear.
+
+This is the guide I wish I'd had when I started building RAG systems at
+[Landeed](https://www.landeed.com). It's opinionated, and it focuses on the
+parts that actually move the needle.
+
+## The mental model
+
+RAG is not one system — it's two, stitched together:
+
+1. A **retrieval** system whose only job is to find the right context.
+2. A **generation** system whose only job is to answer given that context.
+
+Most teams obsess over the generation half (prompt engineering, model choice)
+when their real problem lives in retrieval. A perfect model cannot answer from
+context it never received.
+
+> If your answers are wrong, first ask: *was the right information even in the
+> context window?* You'll be surprised how often the answer is no.
+
+## Chunking is a modeling decision
+
+The naive approach — split every document into 512-token windows — throws away
+structure that your retriever desperately needs.
+
+- **Respect document boundaries.** Sections, headings, and list items carry
+  semantic meaning. Splitting mid-sentence or mid-table destroys it.
+- **Overlap, but not too much.** A little overlap (10–15%) preserves context at
+  boundaries. Too much inflates your index and returns near-duplicate chunks.
+- **Attach metadata.** Title, section path, source, and date should travel with
+  every chunk. Half of production retrieval bugs are solved by filtering on
+  metadata, not by better embeddings.
+
+<Callout type="tip">
+  Store the *heading path* of each chunk (e.g. "Guide › Chunking › Overlap") and
+  prepend it to the chunk text before embedding. Retrieval quality jumps because
+  the embedding now knows where the text lives in the document.
+</Callout>
+
+## Retrieval: dense is not enough
+
+Pure vector search is great at semantic similarity and terrible at exact
+matches — product codes, names, error strings, anything where the *token itself*
+matters. The fix is hybrid retrieval.
+
+```python
+def hybrid_search(query: str, k: int = 20) -> list[Chunk]:
+    dense = vector_index.search(embed(query), k=k)
+    sparse = bm25_index.search(query, k=k)
+    # Reciprocal rank fusion combines the two rankings robustly
+    return reciprocal_rank_fusion([dense, sparse], k=k)
+```
+
+Reciprocal rank fusion is the boring, reliable default. It needs no tuning of
+score scales and consistently beats either retriever alone.
+
+### Reranking earns its keep
+
+Retrieve broadly (say, top 20), then use a cross-encoder reranker to select the
+best 3–5. A bi-encoder embeds query and document *separately*; a cross-encoder
+sees them *together* and is far more accurate at judging relevance.
+
+The cost is latency, so rerank a shortlist, never the whole corpus.
+
+## Evals or it didn't happen
+
+You cannot improve what you don't measure, and "it feels better" is not a
+metric. Build an eval set *before* you start tuning.
+
+- **Retrieval metrics:** recall@k and MRR against a set of query → known-relevant
+  chunk pairs. This isolates retrieval quality from generation quality.
+- **End-to-end metrics:** faithfulness (is the answer grounded in the context?)
+  and answer relevance. LLM-as-judge works well here if you calibrate it against
+  a few dozen human labels.
+
+<Callout type="warning">
+  An eval set of 30 real questions beats an eval set of 3,000 synthetic ones.
+  Pull yours from actual user logs the moment you have them.
+</Callout>
+
+## Failure modes you will hit
+
+- **The confidently wrong answer.** The model answers from parametric memory when
+  retrieval returns nothing useful. Fix: instruct it to say "I don't know" and
+  test that it actually does.
+- **Lost in the middle.** Models attend less to the middle of long contexts. Put
+  the most relevant chunk first, and don't stuff 40 chunks in hoping for the
+  best.
+- **Stale index.** Your data changed; your embeddings didn't. Version your index
+  and plan for re-embedding when you change chunking or the embedding model.
+
+## What I'd tell my past self
+
+Start with the simplest thing that could work — hybrid retrieval, a reranker, a
+tight prompt — and *instrument everything*. Most of the wins come from looking at
+failed queries one by one, not from swapping in a fancier model.
+
+RAG rewards patience and good taste far more than clever architecture. Build the
+eval loop first, and the rest follows.
