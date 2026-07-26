@@ -9,7 +9,10 @@ export const site = {
     "Notes on machine learning, AI engineering, and building things — by Owais Ahmad Lone.",
   url: "https://ml-blogs-ten.vercel.app",
   email: "loneowaisahmad@gmail.com",
-  resumeUrl: "/Resume_Owais.pdf",
+  // Prefixed with the deployment's basePath (e.g. "/ml-blogs" on GitHub
+  // Pages) since plain <a href> links to /public files don't get rewritten
+  // automatically the way next/link and next/image do.
+  resumeUrl: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/Resume_Owais.pdf`,
   socials: {
     github: "https://github.com/owaisahmadlone",
     twitter: "https://twitter.com/owaisahmadlone",

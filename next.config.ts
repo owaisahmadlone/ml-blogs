@@ -5,13 +5,20 @@ import type { NextConfig } from "next";
 // keeps building/serving from the root as before.
 const isGithubPages = process.env.GITHUB_PAGES === "true";
 const repo = "ml-blogs";
+const basePath = isGithubPages ? `/${repo}` : "";
 
 const nextConfig: NextConfig = {
   images: { unoptimized: true },
+  // Exposed so plain <a href="..."> links to files in /public (which don't
+  // get basePath rewriting like next/link and next/image do) can prefix it
+  // themselves. See src/lib/site.ts.
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+  },
   ...(isGithubPages
     ? {
         output: "export",
-        basePath: `/${repo}`,
+        basePath,
         trailingSlash: true,
       }
     : {}),
