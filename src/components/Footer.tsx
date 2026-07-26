@@ -10,6 +10,13 @@ export function Footer() {
         </p>
         <div className="flex items-center gap-5">
           <a
+            href={site.resumeUrl}
+            download
+            className="hover:text-foreground transition-colors"
+          >
+            Resume
+          </a>
+          <a
             href={site.socials.github}
             target="_blank"
             rel="noreferrer"

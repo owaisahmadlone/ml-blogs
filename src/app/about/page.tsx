@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { site } from "@/lib/site";
+import { accolades } from "@/lib/resume";
 
 export const metadata: Metadata = {
   title: "About",
@@ -21,15 +23,23 @@ export default function AboutPage() {
           <a href={site.companyUrl} target="_blank" rel="noreferrer">
             {site.company}
           </a>
-          , where I build AI systems end to end — from data and model training to
-          the infrastructure and product surfaces around them. Before that, I
-          earned my <strong>B.Tech in Computer Science from IIT Kharagpur</strong>.
+          , where I build AI systems end to end — multi-agent pipelines, RAG and
+          knowledge graphs, VLM fine-tuning, and the infrastructure that keeps it
+          all running in production. Before that, I earned my{" "}
+          <strong>B.Tech in Computer Science from IIT Kharagpur</strong>.
         </p>
+        {accolades.map((line) => (
+          <p key={line}>{line}</p>
+        ))}
         <p>
           This blog is my notebook in public: attention internals, training and
           inference at scale, RAG and retrieval, evals, and the messy realities
           of shipping ML. I write to understand things more deeply, and to leave
           behind the guide I wish I&apos;d found earlier.
+        </p>
+        <p>
+          For the full breakdown of my work, projects, and education, see my{" "}
+          <Link href="/resume">résumé</Link>.
         </p>
 
         <h2>Get in touch</h2>

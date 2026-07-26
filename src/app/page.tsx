@@ -37,6 +37,12 @@ export default function Home() {
             Read the blog
           </Link>
           <Link
+            href="/resume"
+            className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-card"
+          >
+            View resume
+          </Link>
+          <Link
             href="/about"
             className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-card"
           >
